@@ -289,7 +289,7 @@ library VultureSwapLibrary {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'063be60abe27ae374ab6ae75aa254d6963e3a90ff6323b9b031a87c6de74a257' // init code hash
+                hex'75106d4d6af81bde42f9eee7b9ba631140c199b7cef4d6e69493aeb32a710601' // init code hash
             ))));
     }
 
