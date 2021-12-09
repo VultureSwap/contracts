@@ -1196,12 +1196,12 @@ contract VultureSwapMasterChef is Ownable, ReentrancyGuard {
         uint256 multiplier = getMultiplier(pool.lastRewardSecond, block.timestamp);
         uint256 vultureReward = multiplier.mul(VulturePerSecond).mul(pool.allocPoint).div(totalAllocPoint);
         
-        try vulture.mint(devaddr, vultureReward.div(12)) {
+        try vulture.mint(devaddr, vultureReward.mul(12).div(100)) {
         } catch (bytes memory reason) {
             vultureReward = 0;
             emit VultureMintError(reason);
         }
-        try vulture.mint(treasuryaddr, vultureReward.div(15)) {
+        try vulture.mint(treasuryaddr, vultureReward.mul(15).div(100)) {
         } catch (bytes memory reason) {
             vultureReward = 0;
             emit VultureMintError(reason);
