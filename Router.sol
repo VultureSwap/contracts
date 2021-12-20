@@ -323,7 +323,7 @@ library VultureSwapLibrary {
         require(amountOut > 0, 'VultureSwapLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
         require(reserveIn > 0 && reserveOut > 0, 'VultureSwapLibrary: INSUFFICIENT_LIQUIDITY');
         uint numerator = reserveIn.mul(amountOut).mul(10000);
-        uint denominator = reserveOut.sub(amountOut).mul(9975);
+        uint denominator = reserveOut.sub(amountOut).mul(9980);
         amountIn = (numerator / denominator).add(1);
     }
 
