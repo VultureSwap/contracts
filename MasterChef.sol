@@ -1,3 +1,5 @@
+
+
 // SPDX-License-Identifier: None
 pragma solidity 0.6.12;
 
@@ -649,6 +651,7 @@ contract CRC20 is Context, ICRC20, Ownable {
     mapping(address => mapping(address => uint256)) private _allowances;
 
     uint256 private _totalSupply;
+    uint256 constant MAXCAPSUPPLY = 60_000_000 * (10 ** 18);
 
     string private _name;
     string private _symbol;
@@ -767,6 +770,10 @@ contract CRC20 is Context, ICRC20, Ownable {
             _allowances[sender][_msgSender()].sub(amount, "CRC20: transfer amount exceeds allowance")
         );
         return true;
+    }
+
+    function maxSupply() public  pure returns (uint256) {
+            return MAXCAPSUPPLY;
     }
 
     /**
@@ -1105,12 +1112,15 @@ contract VultureSwapMasterChef is Ownable, ReentrancyGuard {
         address _treasuryaddr,
         uint256 _VulturePerSecond,
         uint256 _startTime
+        
     ) public {
+        require(_VulturePerSecond < MAX_EMISSION_RATE, "Too high");
         vulture = _vulture;
         devaddr = _devaddr;
         treasuryaddr = _treasuryaddr;
         VulturePerSecond = _VulturePerSecond;
         startTime = _startTime;
+        
     }
 
     function poolLength() external view returns (uint256) {
@@ -1146,7 +1156,7 @@ contract VultureSwapMasterChef is Ownable, ReentrancyGuard {
         emit addPool(poolInfo.length - 1, address(_lpToken), _allocPoint);
     }
 
-    // Update the given pool's VULTR allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's VULTR allocation point. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
@@ -1195,27 +1205,41 @@ contract VultureSwapMasterChef is Ownable, ReentrancyGuard {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardSecond, block.timestamp);
         uint256 vultureReward = multiplier.mul(VulturePerSecond).mul(pool.allocPoint).div(totalAllocPoint);
-        
-        try vulture.mint(devaddr, vultureReward.mul(12).div(100)) {
-        } catch (bytes memory reason) {
-            vultureReward = 0;
-            emit VultureMintError(reason);
+        uint256 devReward = vultureReward.mul(12).div(100);
+        uint256 treasuryReward = vultureReward.mul(15).div(100);
+        uint256 totalSupply = vulture.totalSupply();
+        uint256 maxSupply = vulture.maxSupply();
+        uint256 totalRewards = (totalSupply.add(treasuryReward).add(devReward).add(vultureReward));
+
+        if (totalRewards >= maxSupply) {
+            try vulture.mint(devaddr, devReward) {
+            } catch (bytes memory reason) {
+                vultureReward = 0;
+                emit VultureMintError(reason);
+            }
+            try vulture.mint(treasuryaddr, treasuryReward) {
+            } catch (bytes memory reason) {
+                vultureReward = 0;
+                emit VultureMintError(reason);
+            }
+        } else {
+            // update vultureReward to difference
+            vultureReward = maxSupply.sub(totalSupply);
         }
-        try vulture.mint(treasuryaddr, vultureReward.mul(15).div(100)) {
-        } catch (bytes memory reason) {
-            vultureReward = 0;
-            emit VultureMintError(reason);
-        }
         
-        try vulture.mint(address(this), vultureReward) {
-        } catch (bytes memory reason) {
-            vultureReward = 0;
-            emit VultureMintError(reason);
-        }
         
-        pool.accVulturePerShare = pool.accVulturePerShare.add(vultureReward.mul(1e18).div(pool.lpSupply));
-        pool.lastRewardSecond = block.timestamp;
-    }
+        
+        if (vultureReward != 0) {
+            try vulture.mint(address(this), vultureReward) {
+            }   
+            catch (bytes memory reason) {
+                vultureReward = 0;
+                emit VultureMintError(reason);
+            }
+            pool.accVulturePerShare = pool.accVulturePerShare.add(vultureReward.mul(1e18).div(pool.lpSupply));
+           
+        }
+ pool.lastRewardSecond = block.timestamp;
     
     // Deposit LP tokens to MasterChef for VULTR allocation.
     function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
