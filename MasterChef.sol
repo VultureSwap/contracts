@@ -1240,7 +1240,7 @@ contract VultureSwapMasterChef is Ownable, ReentrancyGuard {
            
         }
  pool.lastRewardSecond = block.timestamp;
-    
+     } 
     // Deposit LP tokens to MasterChef for VULTR allocation.
     function deposit(uint256 _pid, uint256 _amount) external nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
